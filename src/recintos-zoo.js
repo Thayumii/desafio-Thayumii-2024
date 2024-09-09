@@ -21,52 +21,55 @@ class RecintosZoo {
 
     analisaRecintos(animal, quantidade) {
         // Validação de espécies.
-        const animalUpper = animal.toUpperCase();
-        if (!this.animaisValidos[animalUpper]) {
-            return { erro: "Animal inválido" }; // Retorna erro se o animal não for válido.
+        if (!this.animaisValidos[animal]) {
+            return { erro: "Animal inválido" };
         }
 
         // Validação de quantidade.
-        if (quantidade <= 0 || !Number.isInteger(quantidade)) {
-            return { erro: "Quantidade inválida" }; // Retorna erro se a quantidade for inválida.
+        if (quantidade <= 0) {
+            return { erro: "Quantidade inválida" };
         }
 
-        const { tamanho, biomas } = this.animaisValidos[animalUpper];
+        const { tamanho, biomas } = this.animaisValidos[animal];
         const recintosViaveis = [];
 
         // Verificação de recintos.
         for (const recinto of this.recintos) {
-            if (!biomas.includes(recinto.bioma)) {
-                continue; // Ignora recintos que não possuem o bioma adequado.
+            if (!biomas.some(bioma => recinto.bioma.includes(bioma))) {
+                continue;
             }
 
-            // Calcula o espaço ocupado pelos animais existentes no recinto.
-            let espacoOcupado = recinto.animais.reduce((acc, animal) => acc + (animal.espacoOcupado * animal.quantidade), 0);
+            // Calcular o espaço ocupado pelos animais existentes no recinto.
+             let espacoOcupado = recinto.animais.reduce((acc, animal) => acc + animal.espacoOcupado, 0);
 
-            // Regras específicas para alguns animais.
-            if (['LEAO', 'LEOPARDO', 'CROCODILO'].includes(animalUpper)) {
-                if (recinto.animais.length > 0 && recinto.animais[0].especie !== animalUpper) {
-                    continue; // Ignora recintos se já há um animal diferente presente.
-                }
-            }
-
-            if (animalUpper === 'HIPOPOTAMO') {
-                if (recinto.bioma !== 'savana e rio' || (recinto.animais.length > 0 && recinto.animais.some(a => a.especie !== 'HIPOPOTAMO'))) {
+            // Regras para animais carnívoros.
+            if (['LEAO', 'LEOPARDO', 'CROCODILO'].includes(animal)) {
+                if (recinto.animais.length > 0 && recinto.animais[0].especie !== animal) {
                     continue;
                 }
             }
 
-            if (animalUpper === 'MACACO') {
-                if (recinto.animais.length > 0 && !(recinto.animais.length === 1 && recinto.animais[0].especie === 'MACACO')) {
+            // Regra para Hipopótamos.
+            if (animal === 'HIPOPOTAMO') {
+                if (recinto.bioma !== 'savana e rio' && recinto.animais.length > 0 && recinto.animais[0].especie !== 'HIPOPOTAMO') {
                     continue;
                 }
-          }
+            }
 
-            // Calcula o espaço necessário para os novos animais.
+            // Regra para Macacos.
+            if ((animal === 'MACACO') && (recinto.animais.length > 0) && ['LEAO', 'LEOPARDO', 'CROCODILO'].includes(recinto.animais[0].especie)) {
+                continue;
+            }
+
+            // Se houver mais de uma espécie, é necessário contar espaço extra.
+            if (recinto.animais.length > 0 && !recinto.animais.every(a => a.especie === animal)) {
+                espacoOcupado += 1;
+            }
+
             const espacoNecessario = tamanho * quantidade;
             const espacoLivre = recinto.tamanho - espacoOcupado;
 
-            // Verifica se há espaço suficiente no recinto para os novos animais.
+            // Verifica se há espaço suficiente no recinto.
             if (espacoLivre >= espacoNecessario) {
                 recintosViaveis.push({
                     numero: recinto.numero,
@@ -76,7 +79,7 @@ class RecintosZoo {
             }
         }
 
-        // Retorna mensagem de erro se não houver recintos viáveis.
+        // Retorna mensagem de erro, se não houver recintos viáveis.
         if (recintosViaveis.length === 0) {
             return { erro: "Não há recinto viável" };
         }
